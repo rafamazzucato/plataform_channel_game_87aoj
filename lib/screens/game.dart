@@ -80,7 +80,37 @@ class _GameWidgetState extends State<GameWidget> {
           child: Padding(
               padding: const EdgeInsets.all(8),
               child: Text(label, style: textStyle36)),
-          onPressed: () {},
+          onPressed: () {
+            createGame(owner);
+          },
         ),
       );
+
+  Future createGame(bool owner) async {
+    TextEditingController controller = TextEditingController();
+    return showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Qual o nome do jogo?"),
+            content: TextField(controller: controller),
+            actions: [
+              ElevatedButton(
+                  child: const Text("Jogar"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _sendAction('subscribe', {'channel': controller.text});
+                    //.then((value))
+                    setState(() {
+                      creator = Creator(owner, controller.text);
+                      minhaVez = owner;
+                    });
+                  })
+            ],
+          );
+        });
+  }
+
+  Future _sendAction(String action, Map<String, dynamic> arguments) async {}
 }
