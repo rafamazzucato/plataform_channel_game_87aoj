@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:plataform_channel_game/constants/colors.dart';
 import 'package:plataform_channel_game/constants/styles.dart';
 import 'package:plataform_channel_game/models/creator.dart';
+import 'package:flutter/services.dart';
 
 class GameWidget extends StatefulWidget {
   const GameWidget({Key? key}) : super(key: key);
@@ -12,6 +13,8 @@ class GameWidget extends StatefulWidget {
 }
 
 class _GameWidgetState extends State<GameWidget> {
+  static const platform = const MethodChannel('game/exchange');
+
   Creator? creator;
   bool minhaVez = false;
 
@@ -128,11 +131,12 @@ class _GameWidgetState extends State<GameWidget> {
                   child: const Text("Jogar"),
                   onPressed: () {
                     Navigator.of(context).pop();
-                    _sendAction('subscribe', {'channel': controller.text});
-                    //.then((value))
-                    setState(() {
-                      creator = Creator(owner, controller.text);
-                      minhaVez = owner;
+                    _sendAction('subscribe', {'channel': controller.text})
+                        .then((value) {
+                      setState(() {
+                        creator = Creator(owner, controller.text);
+                        minhaVez = owner;
+                      });
                     });
                   })
             ],
@@ -140,7 +144,16 @@ class _GameWidgetState extends State<GameWidget> {
         });
   }
 
-  Future _sendAction(String action, Map<String, dynamic> arguments) async {}
+  Future<bool> _sendAction(
+      String action, Map<String, dynamic> arguments) async {
+    try {
+      final bool result = await platform.invokeMethod(action, arguments);
+      if (result) {
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
 
   Widget getCell(int x, int y) => InkWell(
         child: Container(
@@ -160,16 +173,17 @@ class _GameWidgetState extends State<GameWidget> {
         onTap: () async {
           if (minhaVez == true && cells[x][y] == 0) {
             _showSendingAction();
-            _sendAction('sendAction',
-                {'tap': '${creator!.creator ? "p1" : "p2"}|$x|$y'});
-            //.then((value){})
-            //Navigator.of(context).pop();
-            setState(() {
-              minhaVez = false;
-              cells[x][y] = 1;
-            });
+            _sendAction('sendAction', {
+              'tap': '${creator!.creator ? "p1" : "p2"}|$x|$y'
+            }).then((value) {
+              //Navigator.of(context).pop();
+              setState(() {
+                minhaVez = false;
+                cells[x][y] = 1;
+              });
 
-            checkWinner();
+              checkWinner();
+            });
           }
         },
       );
