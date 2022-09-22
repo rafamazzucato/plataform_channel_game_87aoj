@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PersistableBundle
 import android.util.Log
+import com.google.gson.JsonElement
 import com.pubnub.api.PNConfiguration
 import com.pubnub.api.PubNub
 import com.pubnub.api.callbacks.SubscribeCallback
@@ -42,8 +43,21 @@ class MainActivity: FlutterActivity() {
 
         pubnub?.let{
             it.addListener(object : SubscribeCallback(){
-                override fun message(pubnub: PubNub, pnMessageResult: PNMessageResult) {
+                override fun message(pubnub: PubNub, message: PNMessageResult) {
+                    var receivedObject: JsonElement? = null
+                    var actionReceived = "sendAction"
+                    if(message.message.asJsonObject["tap"] != null){
+                        receivedObject = message.message.asJsonObject["tap"]
+                    }
 
+                    Log.e("Pubnub messa", "${receivedObject}")
+
+                    handler?.let {
+                        it.post{
+                            MethodChannel(flutterEngine!!.dartExecutor.binaryMessenger, CHANNEL_NATIVE_DART)
+                                .invokeMethod(actionReceived, "${receivedObject?.asString}")
+                        }
+                    }
                 }
 
                 override fun status(pubnub: PubNub, pnStatus: PNStatus) {}
@@ -69,9 +83,6 @@ class MainActivity: FlutterActivity() {
                 result.success(true)
             }
             else if(call.method == "sendAction"){
-                Log.e("sendAction", "${pubnub}")
-                Log.e("sendAction", "${call.arguments}")
-                Log.e("sendAction", "${channel_pubnub}")
                 pubnub!!.publish()
                     .message(call.arguments)
                     .channel(channel_pubnub)
